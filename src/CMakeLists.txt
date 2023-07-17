@@ -69,7 +69,6 @@ set (
     ${RTL_SDR_LIBRARIES}
     ${THREAD_LIBRARY}
     ${SOCKET_LIBRARY}
-    m
 )
 
 add_library (

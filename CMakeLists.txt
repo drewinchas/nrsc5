@@ -220,21 +220,22 @@ if (USE_FAAD2)
         faad2_external
         TIMEOUT 120
         GIT_REPOSITORY "https://github.com/knik0/faad2.git"
-        GIT_TAG df42c6fc018552519d140e3d8ffe7046ed48b0cf
+        GIT_TAG 1d539788397713968d9660fe9f4e68af526bab73
         PREFIX ${FAAD2_PREFIX}
 
         UPDATE_COMMAND ""
-        PATCH_COMMAND patch -p1 -Ni "${CMAKE_SOURCE_DIR}/support/faad2-hdc-support.patch" || exit 0
-        COMMAND sh ./bootstrap
+        PATCH_COMMAND patch -p1 -Ni "${CMAKE_SOURCE_DIR}/support/faad2-hdc-support.patch"
 
-        CONFIGURE_COMMAND ${FAAD2_PREFIX}/src/faad2_external/configure ${HOST_TRIPLE_ARG} ${FAAD2_CONFIGURE_ARGS} --prefix=${FAAD2_PREFIX} "CFLAGS=-O2 -fPIC ${CMAKE_C_FLAGS}"
+	CMAKE_ARGS
+            -DCMAKE_INSTALL_PREFIX:STRING=${FAAD2_PREFIX}
+            ${FAAD2_CMAKE_ARGS}
     )
-
     add_library (faad2 STATIC IMPORTED)
     set_property (TARGET faad2 PROPERTY IMPORTED_LOCATION "${FAAD2_PREFIX}/lib/libfaad_hdc.a")
     add_dependencies (faad2 faad2_external)
 
     set (FAAD2_INCLUDE_DIRS "${FAAD2_PREFIX}/include")
+    set (FAAD2_LIBRARY_DIRS "${FAAD2_PREFIX}/lib")
     set (FAAD2_LIBRARIES faad2)
     add_definitions (-DHAVE_FAAD2)
     set (FAAD2_BUILTIN faad2)
