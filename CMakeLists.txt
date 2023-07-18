@@ -11,7 +11,7 @@ option (USE_NEON "Use NEON instructions")
 option (USE_SSE "Use SSE3 instructions")
 option (USE_FAAD2 "AAC decoding with FAAD2" ON)
 option (USE_STATIC "Link with static libraries")
-option (USE_SYSTEM_FFTW "Use system provided fftw" ON)
+option (USE_SYSTEM_FFTW "Use system provided fftw" OFF)
 option (USE_SYSTEM_RTLSDR "Use system provided rtl-sdr" ON)
 option (USE_SYSTEM_LIBUSB "Use system provided libusb" ON)
 option (USE_SYSTEM_LIBAO "Use system provided libao" ON)
@@ -100,21 +100,33 @@ check_symbol_exists (_Imaginary_I complex.h HAVE_IMAGINARY_I)
 check_symbol_exists (_Complex_I complex.h HAVE_COMPLEX_I)
 
 if (NOT USE_SYSTEM_FFTW)
-    set (FFTW_PREFIX "${CMAKE_BINARY_DIR}/fftw-prefix")
-    ExternalProject_Add (
-        fftw_external
-        URL "http://www.fftw.org/fftw-3.3.8.tar.gz"
-        URL_HASH SHA256=6113262f6e92c5bd474f2875fa1b01054c4ad5040f6b0da7c03c98821d9ae303
-        PREFIX ${FFTW_PREFIX}
+    add_library (fftw3 STATIC IMPORTED)
+    if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/fftw-3.3.10)
+        set (FFTW_PREFIX "${CMAKE_BINARY_DIR}/fftw-3.3.10")
+        set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/fftw-3.3.10")
+        set (BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries")
+        set (DISABLE_FORTRAN ON CACHE BOOL "Disable Fortran wrapper routines")
+        set (ENABLE_FLOAT ON CACHE BOOL "single-precision")
+        add_subdirectory(fftw-3.3.10)
+        set (FFTW3F_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/fftw-3.3.10/api")
+    else()
+        set (FFTW_PREFIX "${CMAKE_BINARY_DIR}/fftw-prefix")
+        ExternalProject_Add (
+                fftw_external
+                URL "http://www.fftw.org/fftw-3.3.8.tar.gz"
+                URL_HASH SHA256=6113262f6e92c5bd474f2875fa1b01054c4ad5040f6b0da7c03c98821d9ae303
+                PREFIX ${FFTW_PREFIX}
+                CONFIGURE_COMMAND ${FFTW_PREFIX}/src/fftw_external/configure ${HOST_TRIPLE_ARG} --prefix=${FFTW_PREFIX} --enable-float --enable-static --disable-shared --enable-sse2 --enable-avx --enable-avx2 --with-our-malloc
+        )
+        set (FFTW3F_INCLUDE_DIRS "${FFTW_PREFIX}/include")
+    endif()
 
-        CONFIGURE_COMMAND ${FFTW_PREFIX}/src/fftw_external/configure ${HOST_TRIPLE_ARG} --prefix=${FFTW_PREFIX} --enable-float --enable-static --disable-shared --enable-sse2 --enable-avx --enable-avx2 --with-our-malloc
-    )
 
-    add_library (fftw3f STATIC IMPORTED)
-    set_property (TARGET fftw3f PROPERTY IMPORTED_LOCATION "${FFTW_PREFIX}/lib/libfftw3f.a")
-    add_dependencies (fftw3f fftw_external)
 
-    set (FFTW3F_INCLUDE_DIRS "${FFTW_PREFIX}/include")
+    set_property (TARGET fftw3f PROPERTY IMPORTED_LOCATION "${FFTW_PREFIX}/libfftw3f.a")
+    add_dependencies (fftw3 fftw_external)
+
+
     set (FFTW3F_LIBRARIES fftw3f)
     set (FFTW3F_BUILTIN fftw3f)
 endif ()
@@ -215,27 +227,34 @@ if (NOT USE_SYSTEM_LIBAO)
 endif ()
 
 if (USE_FAAD2)
-    set (FAAD2_PREFIX "${CMAKE_BINARY_DIR}/faad2-prefix")
-    ExternalProject_Add (
-        faad2_external
-        TIMEOUT 120
-        GIT_REPOSITORY "https://github.com/knik0/faad2.git"
-        GIT_TAG 1d539788397713968d9660fe9f4e68af526bab73
-        PREFIX ${FAAD2_PREFIX}
-
-        UPDATE_COMMAND ""
-        PATCH_COMMAND patch -p1 -Ni "${CMAKE_SOURCE_DIR}/support/faad2-hdc-support.patch"
-
-	CMAKE_ARGS
-            -DCMAKE_INSTALL_PREFIX:STRING=${FAAD2_PREFIX}
-            ${FAAD2_CMAKE_ARGS}
-    )
     add_library (faad2 STATIC IMPORTED)
-    set_property (TARGET faad2 PROPERTY IMPORTED_LOCATION "${FAAD2_PREFIX}/lib/libfaad_hdc.a")
-    add_dependencies (faad2 faad2_external)
+        if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/faad2)
+            add_subdirectory(faad2)
+            set (FAAD2_PREFIX "${CMAKE_BINARY_DIR}/faad2")
+            set (FAAD2_LIBRARY_DIRS "${FAAD2_PREFIX}")
+            set_property (TARGET faad2 PROPERTY IMPORTED_LOCATION "${FAAD2_PREFIX}/libfaad_hdc.a")
 
+        else()
+            set (FAAD2_PREFIX "${CMAKE_BINARY_DIR}/faad2-prefix")
+            ExternalProject_Add (
+                    faad2_external
+                    TIMEOUT 120
+                    GIT_REPOSITORY "https://github.com/knik0/faad2.git"
+                    GIT_TAG 1d539788397713968d9660fe9f4e68af526bab73
+                    PREFIX ${FAAD2_PREFIX}
+                    UPDATE_COMMAND ""
+                    PATCH_COMMAND patch -p1 -Ni "${CMAKE_SOURCE_DIR}/support/faad2-hdc-support.patch"
+                    CMAKE_ARGS
+                    -DCMAKE_INSTALL_PREFIX:STRING=${FAAD2_PREFIX}
+                    ${FAAD2_CMAKE_ARGS}
+            )
+            set_property (TARGET faad2 PROPERTY IMPORTED_LOCATION "${FAAD2_PREFIX}/lib/libfaad_hdc.a")
+            set (FAAD2_LIBRARY_DIRS "${FAAD2_PREFIX}/lib")
+        endif()
+
+
+    add_dependencies (faad2 faad2_external)
     set (FAAD2_INCLUDE_DIRS "${FAAD2_PREFIX}/include")
-    set (FAAD2_LIBRARY_DIRS "${FAAD2_PREFIX}/lib")
     set (FAAD2_LIBRARIES faad2)
     add_definitions (-DHAVE_FAAD2)
     set (FAAD2_BUILTIN faad2)

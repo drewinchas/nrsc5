@@ -1,7 +1,7 @@
 add_compile_options (--std=gnu11 -O3 -Wall)
 
 add_definitions (-D_GNU_SOURCE)
-set (THREAD_LIBRARY pthread)
+#set (THREAD_LIBRARY pthread)
 if (CMAKE_SYSTEM_NAME MATCHES Linux)
     check_library_exists (${THREAD_LIBRARY} pthread_setname_np "" HAVE_PTHREAD_SETNAME_NP)
     set (EXPORTS_LINKER_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libnrsc5.map")
