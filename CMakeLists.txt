@@ -12,8 +12,8 @@ option (USE_SSE "Use SSE3 instructions")
 option (USE_FAAD2 "AAC decoding with FAAD2" ON)
 option (USE_STATIC "Link with static libraries")
 option (USE_SYSTEM_FFTW "Use system provided fftw" OFF)
-option (USE_SYSTEM_RTLSDR "Use system provided rtl-sdr" ON)
-option (USE_SYSTEM_LIBUSB "Use system provided libusb" ON)
+#option (USE_SYSTEM_RTLSDR "Use system provided rtl-sdr" ON)
+#option (USE_SYSTEM_LIBUSB "Use system provided libusb" ON)
 option (USE_SYSTEM_LIBAO "Use system provided libao" ON)
 option (BUILD_DOC "Build API documentation" OFF)
 
@@ -54,22 +54,22 @@ if (USE_SYSTEM_FFTW)
         set (USE_SYSTEM_FFTW OFF)
     endif ()
 endif ()
-if (USE_SYSTEM_RTLSDR)
-    find_library (RTL_SDR_LIBRARIES rtlsdr)
-    pkg_search_module (RTL_SDR librtlsdr)
-    if (NOT RTL_SDR_LIBRARIES)
-        message (WARNING "librtlsdr not found. Building from source.")
-        set (USE_SYSTEM_RTLSDR OFF)
-    endif ()
-endif ()
-if (USE_SYSTEM_LIBUSB)
-    find_library (LIBUSB_LIBRARIES usb-1.0)
-    pkg_search_module (LIBUSB libusb-1.0)
-    if (NOT LIBUSB_LIBRARIES)
-        message (WARNING "libusb-1.0 not found. Building from source.")
-        set (USE_SYSTEM_LIBUSB OFF)
-    endif ()
-endif ()
+#if (USE_SYSTEM_RTLSDR)
+#    find_library (RTL_SDR_LIBRARIES rtlsdr)
+#    pkg_search_module (RTL_SDR librtlsdr)
+#    if (NOT RTL_SDR_LIBRARIES)
+#        message (WARNING "librtlsdr not found. Building from source.")
+#        set (USE_SYSTEM_RTLSDR OFF)
+#    endif ()
+#endif ()
+#if (USE_SYSTEM_LIBUSB)
+#    find_library (LIBUSB_LIBRARIES usb-1.0)
+#    pkg_search_module (LIBUSB libusb-1.0)
+#    if (NOT LIBUSB_LIBRARIES)
+#        message (WARNING "libusb-1.0 not found. Building from source.")
+#        set (USE_SYSTEM_LIBUSB OFF)
+#    endif ()
+#endif ()
 if (USE_SYSTEM_LIBAO)
     find_library (AO_LIBRARIES ao)
     pkg_search_module(AO ao)
@@ -131,66 +131,83 @@ if (NOT USE_SYSTEM_FFTW)
     set (FFTW3F_BUILTIN fftw3f)
 endif ()
 
-if (NOT USE_SYSTEM_LIBUSB)
-    set (LIBUSB_PREFIX "${CMAKE_BINARY_DIR}/libusb-prefix")
-    ExternalProject_Add (
-        libusb_external
-        TIMEOUT 120
-        GIT_REPOSITORY "https://github.com/libusb/libusb.git"
-        GIT_TAG v1.0.22
-        PREFIX ${LIBUSB_PREFIX}
+#if (NOT USE_SYSTEM_LIBUSB)
+#    add_library (libusb STATIC IMPORTED)
+#    if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/libusb)
+#        set (LIBUSB_PREFIX "${CMAKE_BINARY_DIR}/libusb")
+#        add_subdirectory(libusb)
+#        set_property (TARGET libusb PROPERTY IMPORTED_LOCATION "${LIBUSB_PREFIX}/libusb-1.0.a")
+#    else()
+#        set (LIBUSB_PREFIX "${CMAKE_BINARY_DIR}/libusb-prefix")
+#        ExternalProject_Add (
+#                libusb_external
+#                TIMEOUT 120
+#                GIT_REPOSITORY "https://github.com/libusb/libusb.git"
+#                GIT_TAG v1.0.22
+#                PREFIX ${LIBUSB_PREFIX}
+#
+#                UPDATE_COMMAND ""
+#                CONFIGURE_COMMAND ${LIBUSB_PREFIX}/src/libusb_external/configure ${HOST_TRIPLE_ARG} --prefix=${LIBUSB_PREFIX}
+#        )
+#        ExternalProject_Add_Step (
+#                libusb_external
+#                bootstrap
+#                COMMAND sh ./bootstrap.sh
+#                DEPENDEES patch
+#                DEPENDERS configure
+#                WORKING_DIRECTORY <SOURCE_DIR>
+#        )
+#        set_property (TARGET libusb PROPERTY IMPORTED_LOCATION "${LIBUSB_PREFIX}/lib/libusb-1.0.a")
+#    endif()
 
-        UPDATE_COMMAND ""
-        CONFIGURE_COMMAND ${LIBUSB_PREFIX}/src/libusb_external/configure ${HOST_TRIPLE_ARG} --prefix=${LIBUSB_PREFIX}
-    )
-    ExternalProject_Add_Step (
-        libusb_external
-        bootstrap
-        COMMAND sh ./bootstrap.sh
-        DEPENDEES patch
-        DEPENDERS configure
-        WORKING_DIRECTORY <SOURCE_DIR>
-    )
-    add_library (libusb STATIC IMPORTED)
-    set_property (TARGET libusb PROPERTY IMPORTED_LOCATION "${LIBUSB_PREFIX}/lib/libusb-1.0.a")
+#    set (LIBUSB_BUILTIN libusb_external)
+#    set (LIBUSB_LIBRARIES libusb)
+#    set (RTLSDR_CMAKE_ARGS
+#        -DLIBUSB_INCLUDE_DIR:STRING=${CMAKE_CURRENT_SOURCE_DIR}/libusb/libusb
+#        -DLIBUSB_LIBRARIES:STRING=${LIBUSB_PREFIX}/libusb-1.0.a
+#    )
+#endif ()
 
-    set (LIBUSB_BUILTIN libusb_external)
-    set (LIBUSB_LIBRARIES libusb)
-    set (RTLSDR_CMAKE_ARGS
-        -DLIBUSB_INCLUDE_DIR:STRING=${LIBUSB_PREFIX}/include/libusb-1.0
-        -DLIBUSB_LIBRARIES:STRING=${LIBUSB_PREFIX}/lib/libusb-1.0.a
-    )
-endif ()
-
-if (NOT USE_SYSTEM_RTLSDR)
-    set (RTLSDR_PREFIX "${CMAKE_BINARY_DIR}/rtlsdr-prefix")
-    ExternalProject_Add (
-        rtlsdr_external
-        TIMEOUT 120
-        GIT_REPOSITORY "https://github.com/osmocom/rtl-sdr.git"
-        GIT_TAG f68bb2fa772ad94f58c59babd78353667570630b
-        PREFIX ${RTLSDR_PREFIX}
-
-        UPDATE_COMMAND ""
-        CMAKE_ARGS
-            -DCMAKE_INSTALL_PREFIX:STRING=${RTLSDR_PREFIX}
-            -DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}
-            -DCMAKE_SYSTEM_NAME:STRING=${CMAKE_SYSTEM_NAME}
-            ${RTLSDR_CMAKE_ARGS}
-    )
-
-    if (LIBUSB_BUILTIN)
-        add_dependencies (rtlsdr_external ${LIBUSB_BUILTIN})
-    endif ()
-
-    add_library (rtlsdr STATIC IMPORTED)
-    set_property (TARGET rtlsdr PROPERTY IMPORTED_LOCATION "${RTLSDR_PREFIX}/lib/librtlsdr_static.a")
-    add_dependencies (rtlsdr rtlsdr_external)
-
-    set (RTL_SDR_INCLUDE_DIRS "${RTLSDR_PREFIX}/include")
-    set (RTL_SDR_LIBRARIES rtlsdr ${LIBUSB_LIBRARIES})
-    set (RTL_SDR_BUILTIN rtlsdr)
-endif ()
+#if (NOT USE_SYSTEM_RTLSDR)
+#    add_library (rtl-sdr STATIC IMPORTED)
+#    if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/rtl-sdr)
+#        set (RTLSDR_PREFIX "${CMAKE_BINARY_DIR}/rtl-sdr")
+#        set_property (TARGET rtl-sdr PROPERTY IMPORTED_LOCATION "${RTLSDR_PREFIX}/librtlsdr_static.a")
+#        include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rtl-sdr/include)
+##        set(LIBUSB_LIBRARIES "${CMAKE_BINARY_DIR}/libusb/libusb-1.0.a" CACHE STRING "manual libusb path")
+##        set(LIBUSB_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/libusb/libusb" CACHE STRING "manual libusb includepath")
+#        add_subdirectory(rtl-sdr)
+#    else()
+#        set (RTLSDR_PREFIX "${CMAKE_BINARY_DIR}/rtlsdr-prefix")
+#        ExternalProject_Add (
+#                rtlsdr_external
+#                TIMEOUT 120
+#                GIT_REPOSITORY "https://github.com/osmocom/rtl-sdr.git"
+#                GIT_TAG f68bb2fa772ad94f58c59babd78353667570630b
+#                PREFIX ${RTLSDR_PREFIX}
+#
+#                UPDATE_COMMAND ""
+#                CMAKE_ARGS
+#                -DCMAKE_INSTALL_PREFIX:STRING=${RTLSDR_PREFIX}
+#                -DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}
+#                -DCMAKE_SYSTEM_NAME:STRING=${CMAKE_SYSTEM_NAME}
+#                ${RTLSDR_CMAKE_ARGS}
+#        )
+#        set_property (TARGET rtl-sdr PROPERTY IMPORTED_LOCATION "${RTLSDR_PREFIX}/lib/librtlsdr_static.a")
+#        set (RTL_SDR_INCLUDE_DIRS "${RTLSDR_PREFIX}/include")
+#    endif()
+#
+#    if (LIBUSB_BUILTIN)
+#        add_dependencies (rtlsdr_external ${LIBUSB_BUILTIN})
+#    endif ()
+#
+#
+#    add_dependencies (rtl-sdr rtlsdr_external)
+#    
+#    set (RTL_SDR_INCLUDE_DIRS "${RTLSDR_PREFIX}/include")
+#    set (RTL_SDR_LIBRARIES rtlsdr ${LIBUSB_LIBRARIES})
+#    set (RTL_SDR_BUILTIN rtlsdr)
+#endif ()
 
 if (NOT USE_SYSTEM_LIBAO)
     if (NOT WIN32)
@@ -265,7 +282,8 @@ else ()
     unset (AO_BUILTIN)
 endif()
 
-set (BUILTIN_LIBRARIES ${FFTW3F_BUILTIN} ${RTL_SDR_BUILTIN} ${FAAD2_BUILTIN} ${AO_BUILTIN})
+#set (BUILTIN_LIBRARIES ${FFTW3F_BUILTIN} ${RTL_SDR_BUILTIN} ${FAAD2_BUILTIN} ${AO_BUILTIN})
+set (BUILTIN_LIBRARIES ${FFTW3F_BUILTIN} ${FAAD2_BUILTIN} ${AO_BUILTIN})
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(

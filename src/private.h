@@ -1,7 +1,7 @@
 #pragma once
 
 #include <pthread.h>
-#include <rtl-sdr.h>
+//#include <rtl-sdr.h>
 #include <stdio.h>
 
 #include <nrsc5.h>
@@ -14,7 +14,7 @@
 
 struct nrsc5_t
 {
-    rtlsdr_dev_t *dev;
+//    rtlsdr_dev_t *dev;
     FILE *iq_file;
     rtltcp_t *rtltcp;
     uint8_t samples_buf[128 * 256];

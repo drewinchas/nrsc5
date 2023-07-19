@@ -9,7 +9,7 @@
 #include <unistd.h>
 #endif
 
-#include <rtl-sdr.h>
+#include "rtl-sdr.h"
 #include "defines.h"
 #include "rtltcp.h"
 

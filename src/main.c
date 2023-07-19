@@ -829,7 +829,7 @@ int main(int argc, char *argv[])
         pthread_mutex_unlock(&st->mutex);
     }
 
-    pthread_cancel(input_thread);
+    //pthread_cancel(input_thread);
     pthread_join(input_thread, NULL);
 
     nrsc5_stop(radio);
