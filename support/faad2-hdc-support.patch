@@ -1,9 +1,9 @@
 From 1d539788397713968d9660fe9f4e68af526bab73 Fri Jul 7 13:30:05 2023 +0200
 From: Drew York <drew@penguinsnest.net>, Originally by Clayton Smith <argilo@gmail.com>
-Date: Sun Jul 16 22:15:40 EDT 2023
+Date: Thu Aug 3 23:36:00 EDT 2023
 Subject: [PATCH] Support for HDC variant (2020); Updated 2023 for newest FAAD2 code 
 
- CMakeLists.txt       |  12 ++-
+ CMakeLists.txt       |  13 ++-
  frontend/main.c      |   3 +-
  include/neaacdec.h   |   4 +
  libfaad/bits.c       |   2 +-
@@ -18,13 +18,20 @@ Subject: [PATCH] Support for HDC variant (2020); Updated 2023 for newest FAAD2 c
  libfaad/sbr_syntax.c |  16 +++-
  libfaad/syntax.c     | 225 ++++++++++++++++++++++++++++++++++++++++++++++++---
  libfaad/syntax.h     |   1 +
- 15 files changed, 400 insertions(+), 45 deletions(-)
-
+ 15 files changed, 401 insertions(+), 45 deletions(-)
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 3127043..e1d4b57 100644
+index 3127043..2c52ea4 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -91,7 +91,7 @@ endif()  # GCC
+@@ -22,6 +22,7 @@ endif()
+ mark_as_advanced(FAAD_BUNDLED_MODE)
+ 
+ find_library(MATH_LIBRARY m)
++link_libraries(m)
+ 
+ include(GNUInstallDirs)
+ 
+@@ -91,7 +92,7 @@ endif()  # GCC
  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/include/neaacdec.h
       DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/include)
  
@@ -33,7 +40,7 @@ index 3127043..e1d4b57 100644
    add_library(${LIB} ${LIBFAAD_SOURCES})
    if(MATH_LIBRARY)
      target_link_libraries(${LIB} PUBLIC ${MATH_LIBRARY})
-@@ -116,6 +116,12 @@ target_compile_definitions(${LIB} PRIVATE
+@@ -116,6 +117,12 @@ target_compile_definitions(${LIB} PRIVATE
  )
  endforeach()
  
@@ -46,7 +53,7 @@ index 3127043..e1d4b57 100644
  foreach(LIB faad_fixed faad_drm_fixed)
  target_compile_definitions(${LIB} PRIVATE
    FIXED_POINT
-@@ -190,7 +196,7 @@ transform_pc_file("libfaad/faad2.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/faad2.pc" "
+@@ -190,7 +197,7 @@ transform_pc_file("libfaad/faad2.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/faad2.pc" "
  # CLI
  
  add_executable(faad_cli ${FAAD_SOURCES})
@@ -55,7 +62,7 @@ index 3127043..e1d4b57 100644
  target_compile_definitions(faad_cli PRIVATE ${FAAD_DEFINES})
  target_compile_options(faad_cli PRIVATE ${FAAD_FLAGS})
  
-@@ -209,7 +215,7 @@ if(NOT FAAD_BUNDLED_MODE AND NOT MSVC)
+@@ -209,7 +216,7 @@ if(NOT FAAD_BUNDLED_MODE AND NOT MSVC)
      DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
  
    install(

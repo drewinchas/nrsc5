@@ -26,6 +26,8 @@ endif()
 
 message (STATUS "Building for ${HOST_TRIPLE}")
 
+link_libraries(m)
+
 find_program (AUTOCONF autoconf)
 if (NOT AUTOCONF)
     message (FATAL_ERROR "Missing autoconf. Install autoconf package and try again.")
@@ -109,6 +111,7 @@ if (NOT USE_SYSTEM_FFTW)
         set (ENABLE_FLOAT ON CACHE BOOL "single-precision")
         add_subdirectory(fftw-3.3.10)
         set (FFTW3F_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/fftw-3.3.10/api")
+	target_link_libraries(fftw3 INTERFACE m)
     else()
         set (FFTW_PREFIX "${CMAKE_BINARY_DIR}/fftw-prefix")
         ExternalProject_Add (
@@ -253,6 +256,7 @@ if (USE_FAAD2)
 
         else()
             set (FAAD2_PREFIX "${CMAKE_BINARY_DIR}/faad2-prefix")
+	    link_libraries(m)
             ExternalProject_Add (
                     faad2_external
                     TIMEOUT 120
